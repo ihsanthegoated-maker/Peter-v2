@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#090d18"><title>Peter Studio Complete</title>
+<style>
+:root{--bg:#090d18;--panel:#121a2b;--line:#2a3853;--txt:#f4f7ff;--muted:#9eabc4;--gold:#ffc857}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#1b2a4b,#090d18 60%);color:var(--txt);font:15px system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:760px;margin:auto;padding:18px 14px 50px}.head{display:flex;align-items:center;gap:12px;margin:5px 0 18px}.logo{width:48px;height:48px;border-radius:15px;background:linear-gradient(135deg,#ffd36c,#ff8b4b);display:grid;place-items:center;font-size:26px}.head h1{margin:0;font-size:22px}.head p{margin:2px 0 0;color:var(--muted);font-size:11px;letter-spacing:1.5px}
+.card{background:#121a2bf2;border:1px solid var(--line);border-radius:18px;padding:16px;margin:13px 0;box-shadow:0 12px 28px #0003}
+.kicker{font-size:11px;color:var(--gold);letter-spacing:1.5px;font-weight:800;text-transform:uppercase}
+label{display:block;font-weight:700;margin:12px 0 7px}textarea,select,input{width:100%;background:#0b1220;color:var(--txt);border:1px solid #354663;border-radius:12px;padding:12px;font:inherit}textarea{min-height:88px;resize:vertical}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.btn{width:100%;border:0;border-radius:12px;padding:14px;font-weight:800;font-size:15px;background:linear-gradient(90deg,#ffd36c,#ff9a58);color:#1a1408;margin-top:12px}.btn.alt{background:#202e49;color:#fff;border:1px solid #3b4b68}.btn:disabled{opacity:.45}
+.note{font-size:12px;color:var(--muted);line-height:1.55}.status{font-size:13px;color:#c5d4ee;margin-top:10px;min-height:20px}
+.preview{width:min(100%,280px);aspect-ratio:9/16;margin:12px auto;background:#070b16;border:1px solid #405070;border-radius:16px;overflow:hidden}.preview canvas{width:100%;height:100%;display:block}
+.script{white-space:pre-wrap;line-height:1.5;background:#0b1220;padding:12px;border-radius:12px;max-height:220px;overflow:auto;font-size:13px}
+.progress{height:7px;border-radius:9px;background:#25324b;overflow:hidden;margin-top:10px}.bar{height:100%;width:0;background:linear-gradient(90deg,#ffd36c,#ff8d53);transition:width .2s}
+.small{font-size:12px;color:var(--muted)}.checks{display:flex;gap:8px;align-items:flex-start;margin-top:10px}.checks input{width:auto;margin-top:3px}
+a{color:#9dc4ff}
+@media(max-width:480px){.row{grid-template-columns:1fr}.card{padding:14px}}
+</style></head>
+<body><main>
+<div class="head"><div class="logo">🎬</div><div><h1>Peter Studio</h1><p>ONE PROMPT. ONE FINISHED SHORT.</p></div></div>
+<section class="card">
+<div class="kicker">Create automatically</div>
+<label for="topic">What should your video be about?</label>
+<textarea id="topic" placeholder="Example: 5 unbelievable facts about ancient Egypt">5 unbelievable facts about ancient Egypt that sound fake but are true</textarea>
+<div class="row">
+<div><label for="duration">Length</label><select id="duration"><option value="30">30 seconds</option><option value="45" selected>45 seconds</option><option value="60">60 seconds</option></select></div>
+<div><label for="voice">Narrator voice</label><select id="voice"><option value="af_heart">Heart — warm female</option><option value="am_michael">Michael — male</option><option value="am_fenrir">Fenrir — deep male</option><option value="bf_emma">Emma — British female</option><option value="bm_george">George — British male</option></select></div>
+</div>
+<label for="style">Video look</label><select id="style"><option value="game">Cartoon narrator + animated game-style background</option><option value="mystery">Dark mystery / conspiracy visuals</option><option value="space">Sci-fi / space visuals</option></select>
+<div class="checks"><input id="fast" type="checkbox" checked><label for="fast" style="margin:0;font-weight:500">Use smaller AI voice model settings for phones (recommended)</label></div>
+<button class="btn" id="make">✨ Generate complete video</button>
+<div class="progress"><div class="bar" id="bar"></div></div><div class="status" id="status">Ready. First use downloads the voice model to your phone (internet required).</div>
+<p class="note">Voice generation runs in your browser using an open-source Kokoro model. First load can be large and slow on Android. No paid API key is required. If your phone runs out of memory, try a shorter video or a modern browser.</p>
+</section>
+<section class="card"><div class="kicker">Your script</div><div class="script" id="script">Your narration script will appear here after generation.</div>
+<div class="row"><button class="btn alt" id="copy">Copy script</button><button class="btn alt" id="srt">Download subtitles</button></div></section>
+<section class="card"><div class="kicker">Video preview</div><div class="preview"><canvas id="canvas" width="720" height="1280"></canvas></div>
+<button class="btn alt" id="previewBtn">▶ Preview animation</button><button class="btn" id="download" disabled>⬇ Download finished video</button>
+<div class="status" id="exportStatus">Generate a video first. Export is WebM with narration and captions.</div>
+</section>
+<section class="card"><div class="kicker">What this version does</div><p class="note">This version generates a topic-based script, synthesizes narration locally, animates an original cartoon host and generated abstract game-style scenes, adds timed captions and exports a narrated vertical WebM. It does not copy Peter Griffin, use stolen gameplay footage, or generate photorealistic AI video clips. The visual scenes are original animated graphics. MP4 conversion may require a separate converter; WebM works in modern browsers and can be uploaded where supported.</p><p class="note">No unlimited external AI video generation is possible for free. This version avoids paid video APIs by making the visuals itself.</p></section>
+</main>
+<script type="module">
+import { pipeline, env } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2';
+env.allowLocalModels=false; env.useBrowserCache=true;
+const $=id=>document.getElementById(id),canvas=$('canvas'),ctx=canvas.getContext('2d'),W=720,H=1280;
+let generatedBlob=null,frames=[],voicePipe=null,previewRAF=0,scriptText='',audioBuffer=null;
+function status(s,p){$('status').textContent=s;if(p!==undefined)$('bar').style.width=Math.max(0,Math.min(100,p))+'%'}
+function makeScript(topic,duration){
+ const t=topic.trim().replace(/[.!?]+$/,'');const chunks=[
+ `Stop scrolling, because ${t} is stranger than you think.`,
+ `Here's the twist: the first detail is not what most people expect.`,
+ `The second detail makes the whole story even more interesting.`,
+ `And the third detail is the one people usually forget to mention.`,
+ `But remember, check reliable sources before believing dramatic claims online.`,
+ `Which part surprised you most? Follow for another story.`
+ ];
+ const count=duration<=30?4:duration<=45?5:6;
+ return chunks.slice(0,count).join(' ');
+}
+function wrap(text,max){let words=text.split(/\s+/),out=[],line='';for(const w of words){let test=line?line+' '+w:w;if(ctx.measureText(test).width>max&&line){out.push(line);line=w}else line=test}if(line)out.push(line);return out}
+function draw(t,caption,style){
+ let bg=ctx.createLinearGradient(0,0,W,H);
+ if(style==='mystery'){bg.addColorStop(0,'#24103c');bg.addColorStop(.55,'#10132d');bg.addColorStop(1,'#050711')}
+ else if(style==='space'){bg.addColorStop(0,'#071e42');bg.addColorStop(.55,'#28134f');bg.addColorStop(1,'#060916')}
+ else{bg.addColorStop(0,'#12314b');bg.addColorStop(.5,'#1e2350');bg.addColorStop(1,'#080d1c')}
+ ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+ // moving scene elements
+ for(let i=0;i<55;i++){let x=(i*149+Math.sin(t*.6+i)*65+W)%W,y=(i*227+t*(style==='space'?16:42))%H;ctx.fillStyle=i%4===0?'#ffd36c':'#91b8ed';ctx.globalAlpha=.18+(i%5)*.07;ctx.fillRect(x,y,i%3+3,i%3+3)}ctx.globalAlpha=1;
+ if(style==='game'){
+   // stylised endless block world
+   for(let i=0;i<9;i++){let x=(i*100-(t*55)%100),y=780+(i%3)*48;ctx.fillStyle=i%2?'#237b67':'#318b68';ctx.fillRect(x,y,90,90);ctx.fillStyle='#55b887';ctx.fillRect(x,y,90,13);ctx.fillStyle='#172f3c';ctx.fillRect(x+15,y+32,18,18);ctx.fillRect(x+55,y+32,18,18)}
+ }else if(style==='space'){
+   ctx.fillStyle='#8b73d9';ctx.beginPath();ctx.arc(570,390,125,0,Math.PI*2);ctx.fill();ctx.fillStyle='#cfb8ff';ctx.beginPath();ctx.arc(530,350,25,0,Math.PI*2);ctx.fill()
+ }else{
+   ctx.strokeStyle='#7b5ac2';ctx.lineWidth=5;for(let i=0;i<5;i++){ctx.beginPath();ctx.arc(360,410,90+i*45+t*12,0,Math.PI*2);ctx.stroke()}
+ }
+ // header
+ ctx.textAlign='center';ctx.fillStyle='#ffd36c';ctx.font='800 28px system-ui';ctx.fillText('THE STORY THEY DIDN’T TELL YOU',360,95);
+ // original cartoon host
+ const bob=Math.sin(t*5)*10;ctx.save();ctx.translate(360,575+bob);
+ ctx.fillStyle='#090d18';ctx.beginPath();ctx.ellipse(0,165,210,225,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#263753';ctx.beginPath();ctx.arc(0,0,178,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#efb48e';ctx.beginPath();ctx.ellipse(0,20,126,145,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#16223a';ctx.beginPath();ctx.ellipse(-49,-17,44,31,0,0,Math.PI*2);ctx.ellipse(49,-17,44,31,0,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#65d7ff';ctx.beginPath();ctx.arc(-49,-17,17,0,Math.PI*2);ctx.arc(49,-17,17,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle='#152033';ctx.beginPath();ctx.arc(-49,-17,7,0,Math.PI*2);ctx.arc(49,-17,7,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle='#5b302e';ctx.lineWidth=8;ctx.beginPath();ctx.arc(0,80,37,.12,Math.PI-.12);ctx.stroke();
+ ctx.restore();
+ // subtitle box
+ ctx.fillStyle='rgba(4,8,19,.88)';ctx.beginPath();ctx.roundRect(42,950,636,205,25);ctx.fill();
+ ctx.fillStyle='#fff';ctx.font='bold 43px system-ui';let lines=wrap(caption||'Wait for the final detail…',560).slice(0,4);lines.forEach((l,i)=>ctx.fillText(l,360,1020+i*52));
+ ctx.fillStyle='#ffd36c';ctx.font='bold 22px system-ui';ctx.fillText('FOLLOW FOR MORE',360,1210);
+}
+function buildCaptionTimeline(text,total){
+ let parts=text.match(/[^.!?]+[.!?]?/g)||[text];parts=parts.map(s=>s.trim()).filter(Boolean);
+ const weights=parts.map(s=>Math.max(1,s.split(/\s+/).length));const sum=weights.reduce((a,b)=>a+b,0);let at=0;
+ return parts.map((s,i)=>{let start=at;let dur=total*weights[i]/sum;at+=dur;return {text:s,start,end:at}});
+}
+function currentCaption(t){return frames.find(f=>t>=f.start&&t<f.end)?.text||frames[frames.length-1]?.text||''}
+async function loadVoice(){
+ if(voicePipe)return voicePipe;
+ status('Loading the local AI voice model… this can take a few minutes on first use.',5);
+ const device=('gpu' in navigator)?'webgpu':'wasm';
+ voicePipe=await pipeline('text-to-speech','onnx-community/Kokoro-82M-v1.0-ONNX',{dtype:$('fast').checked?'q8':'fp32',device,progress_callback:(x)=>{if(x.status==='progress'&&x.total)status('Downloading voice model… '+Math.round(x.progress)+'%',Math.min(35,5+x.progress*.3))}});
+ return voicePipe;
+}
+async function make(){
+ $('make').disabled=true;$('download').disabled=true;generatedBlob=null;
+ try{
+  const topic=$('topic').value.trim();if(!topic)throw new Error('Enter a topic first.');
+  const seconds=Number($('duration').value),style=$('style').value;
+  scriptText=makeScript(topic,seconds);$('script').textContent=scriptText;frames=buildCaptionTimeline(scriptText,seconds);
+  const tts=await loadVoice();status('Generating natural AI narration…',42);
+  const result=await tts(scriptText,{voice:$('voice').value,speed:1.0});
+  const samples=result.audio;const sr=result.sampling_rate||24000;
+  const audioCtx=new AudioContext({sampleRate:sr});audioBuffer=audioCtx.createBuffer(1,samples.length,sr);audioBuffer.copyToChannel(samples,0);
+  status('Preparing animated scenes and audio…',60);draw(0,frames[0]?.text,style);
+  await new Promise(r=>setTimeout(r,200));
+  status('Rendering your narrated video… keep this page open.',70);
+  const stream=canvas.captureStream(30),dest=audioCtx.createMediaStreamDestination(),source=audioCtx.createBufferSource();
+  source.buffer=audioBuffer;source.connect(dest);source.connect(audioCtx.destination);
+  dest.stream.getAudioTracks().forEach(track=>stream.addTrack(track));
+  const mime=MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')?'video/webm;codecs=vp9,opus':'video/webm';
+  const recorder=new MediaRecorder(stream,{mimeType:mime,videoBitsPerSecond:3500000});const chunks=[];
+  recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+  const renderStart=performance.now();let doneResolve;const done=new Promise(r=>doneResolve=r);
+  recorder.onstop=()=>doneResolve();
+  recorder.start(250);source.start();
+  function render(now){const elapsed=(now-renderStart)/1000;draw(elapsed,currentCaption(elapsed),style);status('Rendering video… '+Math.min(99,Math.round(70+elapsed/seconds*28))+'%',Math.min(98,70+elapsed/seconds*28));if(elapsed<seconds)requestAnimationFrame(render);else if(recorder.state==='recording')recorder.stop()}
+  requestAnimationFrame(render);await done;stream.getTracks().forEach(t=>t.stop());await audioCtx.close();
+  generatedBlob=new Blob(chunks,{type:mime});$('download').disabled=false;status('Done! Your narrated video is ready to download.',100);$('exportStatus').textContent=`Finished: ${(generatedBlob.size/1024/1024).toFixed(1)} MB. Includes AI narration, animated visuals and captions.`;
+ }catch(e){console.error(e);status('Could not finish: '+(e.message||e),0);$('exportStatus').textContent='Try Chrome, a shorter video, or reload the page. Some phones may not have enough memory for local AI voice generation.';voicePipe=null}
+ finally{$('make').disabled=false}
+}
+$('make').onclick=make;
+$('download').onclick=()=>{if(!generatedBlob)return;const u=URL.createObjectURL(generatedBlob),a=document.createElement('a');a.href=u;a.download='peter-studio-short.webm';a.click();setTimeout(()=>URL.revokeObjectURL(u),60000)};
+$('copy').onclick=async()=>{if(scriptText)await navigator.clipboard.writeText(scriptText);$('exportStatus').textContent='Script copied.'};
+$('srt').onclick=()=>{if(!frames.length)return;const stamp=s=>{let ms=Math.floor((s%1)*1000),sec=Math.floor(s)%60,min=Math.floor(s/60)%60,hr=Math.floor(s/3600);return `${String(hr).padStart(2,'0')}:${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')},${String(ms).padStart(3,'0')}`};const body=frames.map((f,i)=>`${i+1}\n${stamp(f.start)} --> ${stamp(f.end)}\n${f.text}`).join('\n\n');const blob=new Blob([body],{type:'text/plain'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download='captions.srt';a.click();URL.revokeObjectURL(u)};
+$('previewBtn').onclick=()=>{let st=performance.now();cancelAnimationFrame(previewRAF);function go(n){let t=(n-st)/1000;draw(t,currentCaption(t),$('style').value);if(t<Number($('duration').value))previewRAF=requestAnimationFrame(go)}previewRAF=requestAnimationFrame(go)};
+draw(0,'Enter a topic and generate your short.','game');
+</script></body></html>
